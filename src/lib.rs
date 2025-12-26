@@ -9,6 +9,7 @@ pub mod core;
 pub mod error;
 pub mod extract;
 pub mod load;
+pub mod operations;
 pub mod transform;
 
 // Re-export commonly used types
@@ -17,4 +18,5 @@ pub use core::{Record, Value};
 pub use error::MigroError;
 pub use extract::{CsvExtractor, ExcelExtractor, Extractor, RestApiExtractor};
 pub use load::{BaseVnLoader, LoadResult, Loader};
+pub use operations::{AuditLogger, Checkpoint, CheckpointManager, ProgressTracker, SyncStrategy};
 pub use transform::{FieldMapper, Transformer};
