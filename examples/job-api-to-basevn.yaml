@@ -1,0 +1,59 @@
+version: "1"
+
+job:
+  id: "import-users-api"
+  name: "Import user data from REST API to Base.vn"
+
+source:
+  type: rest_api
+  url: "https://jsonplaceholder.typicode.com/users"
+  method: "GET"
+  pagination:
+    type: "none"  # Simple example - all data in one response
+  response_path: "."  # Root is array of users
+
+transform:
+  - type: field_mapper
+    fields:
+      - source: "name"
+        target: "full_name"
+        required: true
+      - source: "email"
+        target: "email"
+        required: true
+      - source: "phone"
+        target: "phone"
+        required: false
+      - source: "company.name"
+        target: "company"
+        required: false
+
+  - type: field_filter
+    mode: keep
+    fields: ["full_name", "email", "phone", "company"]
+
+target:
+  type: basevn
+  base_url: "https://api.base.vn"
+  app: "crm"
+  entity: "contacts"
+  auth:
+    type: access_token
+    token: "${BASEVN_ACCESS_TOKEN}"
+  options:
+    batch_size: 50
+    rate_limit: 5
+    timeout: 30
+    max_retries: 3
+
+operations:
+  sync_mode:
+    mode: full  # Full sync - replace all data
+  checkpoint:
+    enabled: true
+    path: "./checkpoint-users-api.json"
+  audit_log:
+    enabled: true
+    path: "./audit-users-api.jsonl"
+  progress:
+    enabled: true

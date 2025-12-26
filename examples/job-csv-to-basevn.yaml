@@ -1,0 +1,66 @@
+version: "1"
+
+job:
+  id: "import-employees-csv"
+  name: "Import employee data from CSV to Base.vn"
+
+source:
+  type: csv
+  path: "./examples/employees.csv"
+  options:
+    delimiter: ","
+    has_headers: true
+    encoding: "utf-8"
+    skip_rows: 0
+
+transform:
+  - type: field_mapper
+    fields:
+      - source: "Full Name"
+        target: "full_name"
+        required: true
+      - source: "Email"
+        target: "email"
+        required: true
+      - source: "Department"
+        target: "department"
+        required: false
+        default: "General"
+      - source: "Position"
+        target: "position"
+        required: false
+      - source: "Start Date"
+        target: "start_date"
+        required: false
+
+  - type: field_filter
+    mode: remove
+    fields: ["Internal ID", "Password Hash"]
+
+target:
+  type: basevn
+  base_url: "https://api.base.vn"
+  app: "hrm"
+  entity: "employees"
+  auth:
+    type: access_token
+    token: "${BASEVN_ACCESS_TOKEN}"
+  options:
+    batch_size: 100
+    rate_limit: 10
+    timeout: 30
+    max_retries: 3
+
+operations:
+  sync_mode:
+    mode: incremental
+    key_field: "email"
+    conflict_strategy: update
+  checkpoint:
+    enabled: true
+    path: "./checkpoint-employees.json"
+  audit_log:
+    enabled: true
+    path: "./audit-employees.jsonl"
+  progress:
+    enabled: true

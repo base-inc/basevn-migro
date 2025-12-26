@@ -1,0 +1,6 @@
+Full Name,Email,Department,Position,Start Date,Internal ID,Password Hash
+John Doe,john.doe@company.com,Engineering,Senior Engineer,2023-01-15,EMP001,hash123
+Jane Smith,jane.smith@company.com,Marketing,Marketing Manager,2023-02-01,EMP002,hash456
+Bob Johnson,bob.johnson@company.com,Engineering,Junior Developer,2023-03-10,EMP003,hash789
+Alice Williams,alice.williams@company.com,HR,HR Specialist,2023-01-20,EMP004,hash101
+Charlie Brown,charlie.brown@company.com,Sales,Sales Representative,2023-04-05,EMP005,hash202
