@@ -99,6 +99,24 @@ impl RestApiExtractor {
         }
     }
 
+    /// Extracts cursor value from a JSON response using a path.
+    fn extract_cursor_from_response(response: &JsonValue, path: &str) -> Option<String> {
+        // Simple path extraction (supports "next", "pagination.cursor", etc.)
+        let parts: Vec<&str> = path.split('.').collect();
+        let mut current = response;
+
+        for part in parts {
+            current = current.get(part)?;
+        }
+
+        // Extract as string
+        match current {
+            JsonValue::String(s) => Some(s.clone()),
+            JsonValue::Number(n) => Some(n.to_string()),
+            _ => None,
+        }
+    }
+
     /// Fetches a single page of data from the API.
     async fn fetch_page(
         &self,
@@ -307,11 +325,69 @@ impl Extractor for RestApiExtractor {
                     }
                 }
                 PaginationType::Cursor => {
-                    // Cursor-based pagination not fully implemented yet
-                    // Would need to extract cursor from response and use it for next request
-                    return Err(ExtractError::ApiRequest(
-                        "Cursor-based pagination not yet implemented".into(),
-                    ));
+                    let cursor_param = pagination
+                        .cursor_param
+                        .as_ref()
+                        .ok_or_else(|| {
+                            ExtractError::ApiRequest(
+                                "cursor_param required for cursor pagination".into(),
+                            )
+                        })?
+                        .clone();
+
+                    let next_cursor_path = pagination
+                        .next_cursor_path
+                        .as_ref()
+                        .ok_or_else(|| {
+                            ExtractError::ApiRequest(
+                                "next_cursor_path required for cursor pagination".into(),
+                            )
+                        })?
+                        .clone();
+
+                    let mut cursor: Option<String> = None;
+
+                    loop {
+                        let mut params = HashMap::new();
+                        params.insert(pagination.limit_param.clone(), pagination.limit.to_string());
+
+                        if let Some(c) = &cursor {
+                            params.insert(cursor_param.clone(), c.clone());
+                        }
+
+                        let response = self.fetch_page(&rest_api, params).await?;
+                        let records = Self::extract_records_from_response(
+                            &response,
+                            &pagination.response_path,
+                        )?;
+
+                        if records.is_empty() {
+                            break;
+                        }
+
+                        // Extract records
+                        for json_record in records {
+                            if let JsonValue::Object(obj) = json_record {
+                                let mut record = Record::new();
+                                if let Some(c) = &cursor {
+                                    record.add_metadata("source_cursor", c.clone());
+                                }
+
+                                for (key, value) in obj {
+                                    record.insert(key, Self::json_to_value(&value));
+                                }
+
+                                all_records.push(Ok(record));
+                            }
+                        }
+
+                        // Extract next cursor from response
+                        cursor = Self::extract_cursor_from_response(&response, &next_cursor_path);
+
+                        if cursor.is_none() {
+                            break;
+                        }
+                    }
                 }
             }
         } else {

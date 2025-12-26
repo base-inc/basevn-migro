@@ -1,6 +1,7 @@
 //! Excel file extractor implementation.
 //!
-//! Note: Excel support is currently limited. Full implementation coming in future phases.
+//! Note: Full Excel support is planned for a future phase. For now, please convert
+//! Excel files to CSV format for extraction.
 
 use async_trait::async_trait;
 
@@ -13,8 +14,8 @@ use super::traits::{Extractor, RecordStream};
 ///
 /// Extracts records from Excel files (.xlsx, .xls) using calamine.
 ///
-/// **Note:** Full Excel support is under development. For now, please convert
-/// Excel files to CSV format for extraction.
+/// **Note:** Full Excel support is under active development. For the MVP release,
+/// please convert Excel files to CSV format for extraction.
 pub struct ExcelExtractor;
 
 impl ExcelExtractor {
@@ -55,10 +56,10 @@ impl Extractor for ExcelExtractor {
     }
 
     async fn extract(&self, _config: &SourceConfig) -> Result<RecordStream, ExtractError> {
-        // TODO: Implement full Excel extraction in Phase 3
-        // For now, return empty stream with helpful error
+        // TODO: Implement full Excel extraction post-MVP
+        // Calamine integration requires careful API handling
         Err(ExtractError::UnsupportedType(
-            "Excel extraction not yet fully implemented. Please convert to CSV format.".into(),
+            "Excel extraction not yet implemented. Please convert to CSV format.".into(),
         ))
     }
 
@@ -76,5 +77,18 @@ mod tests {
         let extractor = ExcelExtractor::new();
         assert_eq!(extractor.name(), "excel");
         assert!(extractor.supported_types().contains(&"xlsx"));
+        assert!(extractor.supported_types().contains(&"xls"));
+    }
+
+    #[tokio::test]
+    async fn test_excel_returns_not_implemented() {
+        let extractor = ExcelExtractor::new();
+        let config = SourceConfig::Excel {
+            path: "test.xlsx".to_string(),
+            excel: None,
+        };
+
+        let result = extractor.extract(&config).await;
+        assert!(result.is_err());
     }
 }
