@@ -1,0 +1,30 @@
+version: "1"
+
+job:
+  id: "simple-csv-import"
+  name: "Simple CSV Import Example"
+  description: "Example configuration for importing data from CSV to Base.vn"
+
+source:
+  type: csv
+  path: "./examples/simple_csv/data.csv"
+
+target:
+  type: basevn
+  base_url: "https://api.base.vn"
+  app: "hrm"
+  entity: "employees"
+  auth:
+    type: access_token
+    token: "${BASEVN_ACCESS_TOKEN}"
+
+mapping:
+  fields:
+    - source: "name"
+      target: "full_name"
+      required: true
+    - source: "email"
+      target: "email"
+      required: true
+    - source: "department"
+      target: "dept_id"
