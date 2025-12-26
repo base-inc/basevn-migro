@@ -283,9 +283,19 @@ Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidel
 
 Licensed under Apache 2.0 - see [LICENSE](LICENSE) file for details.
 
+## Documentation
+
+- **Project Overview & PDR**: [docs/project-overview-pdr.md](docs/project-overview-pdr.md) - Vision, goals, requirements, and roadmap
+- **Codebase Summary**: [docs/codebase-summary.md](docs/codebase-summary.md) - Architecture, modules, and code organization
+- **Code Standards**: [docs/code-standards.md](docs/code-standards.md) - Rust conventions, testing, and contribution guidelines
+- **System Architecture**: [docs/system-architecture.md](docs/system-architecture.md) - Deployment, scaling, and reliability
+- **Architecture Details**: [docs/architecture.md](docs/architecture.md) - Implementation details and design decisions
+- **Getting Started**: [docs/getting-started.md](docs/getting-started.md) - Quick start guide and tutorials
+- **Configuration Guide**: [docs/configuration.md](docs/configuration.md) - Configuration reference and options
+- **Troubleshooting**: [docs/troubleshooting.md](docs/troubleshooting.md) - Common issues and solutions
+
 ## Support
 
-- **Documentation**: [docs/](docs/)
 - **Planning**: [plans/plan.md](plans/plan.md)
 - **Issues**: [GitHub Issues](https://github.com/basevn/basevn-migro/issues)
 - **Base.vn Docs**: https://developers.base.vn
