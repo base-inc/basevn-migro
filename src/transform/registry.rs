@@ -163,6 +163,7 @@ mod tests {
     use super::*;
     use crate::config::{FieldMap, MappingConfig, MissingRequiredBehavior, UnmappedFieldBehavior};
     use crate::core::Value;
+    use crate::transform::FieldMapper;
 
     #[test]
     fn test_registry_creation() {

@@ -4,7 +4,9 @@
 
 pub mod basevn;
 pub mod rate_limiter;
+pub mod registry;
 pub mod traits;
 
 pub use basevn::BaseVnLoader;
+pub use registry::LoaderRegistry;
 pub use traits::{LoadResult, Loader, RecordFailure};

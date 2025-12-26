@@ -80,6 +80,70 @@ impl BaseVnLoader {
         }
     }
 
+    /// Parses Base.vn API response to track individual record successes/failures.
+    ///
+    /// Supports multiple response formats:
+    /// 1. Detailed format with results array
+    /// 2. Simple format with created/failed counts and errors array
+    /// 3. Fallback: assume all succeeded if parsing fails
+    fn parse_response(&self, response_text: &str, total_records: usize) -> Result<LoadResult, LoadError> {
+        let mut result = LoadResult::new(total_records);
+
+        // Try to parse as JSON
+        let json: JsonValue = match serde_json::from_str(response_text) {
+            Ok(v) => v,
+            Err(_) => {
+                // If not JSON, assume all succeeded (backward compatibility)
+                result.success = total_records;
+                return Ok(result);
+            }
+        };
+
+        // Try detailed format with results array
+        if let Some(results_array) = json.get("results").and_then(|v| v.as_array()) {
+            for (idx, item) in results_array.iter().enumerate() {
+                let status = item.get("status").and_then(|v| v.as_str()).unwrap_or("success");
+
+                if status == "success" {
+                    result.add_success();
+                } else {
+                    let error = item.get("error")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("Unknown error")
+                        .to_string();
+                    let id = item.get("id").and_then(|v| v.as_str()).map(|s| s.to_string());
+                    result.add_failure(idx, id, error);
+                }
+            }
+            return Ok(result);
+        }
+
+        // Try simple format with errors array
+        if let Some(errors_array) = json.get("errors").and_then(|v| v.as_array()) {
+            let created = json.get("created").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
+
+            for error_item in errors_array {
+                let index = error_item.get("index").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
+                let error = error_item.get("error")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("Unknown error")
+                    .to_string();
+                let id = error_item.get("id").and_then(|v| v.as_str()).map(|s| s.to_string());
+
+                result.add_failure(index, id, error);
+            }
+
+            result.success = created;
+            result.failed = errors_array.len();
+
+            return Ok(result);
+        }
+
+        // Fallback: assume all succeeded if no recognized format
+        result.success = total_records;
+        Ok(result)
+    }
+
     /// Sends a batch of records to Base.vn API with retry logic.
     async fn send_batch_with_retry(
         &self,
@@ -190,12 +254,9 @@ impl BaseVnLoader {
             )));
         }
 
-        // Parse response (assume all records succeeded for MVP)
-        // In production, parse response to identify individual failures
-        let mut result = LoadResult::new(records.len());
-        result.success = records.len();
-
-        Ok(result)
+        // Parse response to identify individual record failures
+        let response_text = response.text().await?;
+        self.parse_response(&response_text, records.len())
     }
 }
 
@@ -356,5 +417,98 @@ mod tests {
         assert!(json.is_object());
         assert_eq!(json["name"], JsonValue::String("John Doe".into()));
         assert_eq!(json["age"], JsonValue::String("30".into()));
+    }
+
+    #[test]
+    fn test_parse_response_detailed_format_all_success() {
+        let loader = BaseVnLoader::new();
+        let response = r#"{
+            "results": [
+                {"index": 0, "id": "12345", "status": "success"},
+                {"index": 1, "id": "12346", "status": "success"}
+            ]
+        }"#;
+
+        let result = loader.parse_response(response, 2).unwrap();
+
+        assert_eq!(result.total, 2);
+        assert_eq!(result.success, 2);
+        assert_eq!(result.failed, 0);
+        assert!(result.failures.is_empty());
+        assert!(result.is_complete_success());
+    }
+
+    #[test]
+    fn test_parse_response_detailed_format_mixed() {
+        let loader = BaseVnLoader::new();
+        let response = r#"{
+            "results": [
+                {"index": 0, "id": "12345", "status": "success"},
+                {"index": 1, "status": "error", "error": "Validation failed: email required"},
+                {"index": 2, "id": "12346", "status": "success"}
+            ]
+        }"#;
+
+        let result = loader.parse_response(response, 3).unwrap();
+
+        assert_eq!(result.total, 3);
+        assert_eq!(result.success, 2);
+        assert_eq!(result.failed, 1);
+        assert_eq!(result.failures.len(), 1);
+        assert_eq!(result.failures[0].index, 1);
+        assert_eq!(result.failures[0].error, "Validation failed: email required");
+        assert!(!result.is_complete_success());
+        assert_eq!(result.success_rate(), 66.66666666666666);
+    }
+
+    #[test]
+    fn test_parse_response_simple_format() {
+        let loader = BaseVnLoader::new();
+        let response = r#"{
+            "created": 2,
+            "failed": 1,
+            "errors": [
+                {"index": 1, "id": "user_123", "error": "Duplicate email"}
+            ]
+        }"#;
+
+        let result = loader.parse_response(response, 3).unwrap();
+
+        assert_eq!(result.total, 3);
+        assert_eq!(result.success, 2);
+        assert_eq!(result.failed, 1);
+        assert_eq!(result.failures.len(), 1);
+        assert_eq!(result.failures[0].index, 1);
+        assert_eq!(result.failures[0].id, Some("user_123".to_string()));
+        assert_eq!(result.failures[0].error, "Duplicate email");
+    }
+
+    #[test]
+    fn test_parse_response_non_json_fallback() {
+        let loader = BaseVnLoader::new();
+        let response = "OK";
+
+        let result = loader.parse_response(response, 5).unwrap();
+
+        assert_eq!(result.total, 5);
+        assert_eq!(result.success, 5);
+        assert_eq!(result.failed, 0);
+        assert!(result.failures.is_empty());
+    }
+
+    #[test]
+    fn test_parse_response_unrecognized_format_fallback() {
+        let loader = BaseVnLoader::new();
+        let response = r#"{
+            "status": "ok",
+            "message": "Records processed"
+        }"#;
+
+        let result = loader.parse_response(response, 3).unwrap();
+
+        assert_eq!(result.total, 3);
+        assert_eq!(result.success, 3);
+        assert_eq!(result.failed, 0);
+        assert!(result.failures.is_empty());
     }
 }
