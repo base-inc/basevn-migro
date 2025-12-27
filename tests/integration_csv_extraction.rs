@@ -11,6 +11,8 @@ async fn test_csv_extraction_with_headers() {
     common::setup();
 
     let csv_path = common::fixture_path("test-employees.csv");
+    // Convert path to string, replacing backslashes with forward slashes for cross-platform compatibility
+    let csv_path_str = csv_path.to_string_lossy().replace('\\', "/");
     let config = format!(
         r#"
 version: "1"
@@ -37,7 +39,7 @@ mapping:
       target: "test"
       required: false
 "#,
-        csv_path.display()
+        csv_path_str
     );
 
     let config = serde_yaml::from_str::<JobConfig>(&config).expect("Failed to load config");
@@ -101,7 +103,7 @@ mapping:
       target: "test"
       required: false
 "#,
-        csv_path.display()
+        csv_path.to_string_lossy().replace('\\', "/")
     );
 
     let config = serde_yaml::from_str::<JobConfig>(&config).expect("Failed to load config");
@@ -153,7 +155,7 @@ mapping:
       target: "test"
       required: false
 "#,
-        csv_path.display()
+        csv_path.to_string_lossy().replace('\\', "/")
     );
 
     let config = serde_yaml::from_str::<JobConfig>(&config).expect("Failed to load config");
@@ -208,7 +210,7 @@ mapping:
       target: "test"
       required: false
 "#,
-        csv_path.display()
+        csv_path.to_string_lossy().replace('\\', "/")
     );
 
     let config = serde_yaml::from_str::<JobConfig>(&config).expect("Failed to load config");

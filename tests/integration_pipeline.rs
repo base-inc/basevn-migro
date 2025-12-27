@@ -44,7 +44,7 @@ mapping:
       target: "test"
       required: false
 "#,
-        csv_path.display()
+        csv_path.to_string_lossy().replace('\\', "/")
     );
 
     let config = serde_yaml::from_str::<JobConfig>(&config).expect("Failed to load config");
@@ -162,7 +162,7 @@ mapping:
       target: "test"
       required: false
 "#,
-        csv_path.display()
+        csv_path.to_string_lossy().replace('\\', "/")
     );
 
     let config = serde_yaml::from_str::<JobConfig>(&config).expect("Failed to load config");
@@ -247,7 +247,7 @@ mapping:
       target: "test"
       required: false
 "#,
-        csv_path.display()
+        csv_path.to_string_lossy().replace('\\', "/")
     );
 
     let config = serde_yaml::from_str::<JobConfig>(&config).expect("Failed to load config");

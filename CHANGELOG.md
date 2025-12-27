@@ -7,10 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2024-12-27
+
+### Fixed
+- Windows integration test failures due to YAML escaping of backslashes in file paths
+- Integration tests now use forward slashes in config paths for cross-platform compatibility
+- Properly handle Windows path separators in test configurations
+
 ## [0.1.1] - 2024-12-27
 
 ### Fixed
-- Windows path corruption in error messages (fixed integration tests on Windows)
+- Windows path corruption in error messages
 - Changed path serialization from `display().to_string()` to `to_string_lossy().to_string()` for proper Windows path handling
 
 ## [0.1.0] - 2024-12-27

@@ -1,6 +1,6 @@
 [package]
 name = "basevn-migro"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["Base.vn Engineering Team"]
 description = "Open-source ETL tool for migrating data to Base.vn platform"
