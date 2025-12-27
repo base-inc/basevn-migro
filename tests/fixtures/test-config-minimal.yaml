@@ -1,0 +1,18 @@
+version: "1"
+
+job:
+  id: "test-minimal"
+  name: "Minimal Test Configuration"
+
+source:
+  type: csv
+  path: "./tests/fixtures/test-minimal.csv"
+
+target:
+  type: basevn
+  base_url: "http://localhost:8080"
+  app: "test-app"
+  entity: "users"
+  auth:
+    type: access_token
+    token: "test-token"

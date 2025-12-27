@@ -55,6 +55,5 @@ mockall = "0.12"
 tempfile = "3.9"
 assert_cmd = "2.0"
 predicates = "3.0"
-
-# Note: wiremock temporarily removed due to native-tls dependency issues
-# Will be re-added in Phase 2 when setting up integration tests
+wiremock = "0.6"
+tokio-test = "0.4"

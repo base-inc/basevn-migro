@@ -1,0 +1,57 @@
+version: "1"
+
+job:
+  id: "test-csv-import"
+  name: "Test CSV Import"
+
+source:
+  type: csv
+  path: "./tests/fixtures/test-employees.csv"
+  options:
+    delimiter: ","
+    has_headers: true
+    encoding: "utf-8"
+
+transform:
+  - type: field_mapper
+    fields:
+      - source: "Full Name"
+        target: "full_name"
+        required: true
+      - source: "Email"
+        target: "email"
+        required: true
+      - source: "Department"
+        target: "department"
+        required: false
+        default: "General"
+
+  - type: field_filter
+    mode: remove
+    fields: ["Internal ID", "Password Hash"]
+
+target:
+  type: basevn
+  base_url: "http://localhost:8080"
+  app: "test-app"
+  entity: "employees"
+  auth:
+    type: access_token
+    token: "test-token"
+  options:
+    batch_size: 10
+    rate_limit: 100
+    timeout: 5
+    max_retries: 2
+
+operations:
+  sync_mode:
+    mode: incremental
+    key_field: "email"
+    conflict_strategy: update
+  checkpoint:
+    enabled: false
+  audit_log:
+    enabled: false
+  progress:
+    enabled: false

@@ -1,0 +1,4 @@
+Full Name,Email,Department,Position,Start Date,Internal ID,Password Hash
+Alice Test,alice.test@example.com,Engineering,Software Engineer,2024-01-15,TEST001,hashed_password_1
+Bob Tester,bob.tester@example.com,QA,QA Engineer,2024-02-20,TEST002,hashed_password_2
+Charlie Mock,charlie.mock@example.com,DevOps,DevOps Engineer,2024-03-10,TEST003,hashed_password_3
