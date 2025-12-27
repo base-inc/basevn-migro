@@ -9,9 +9,9 @@ A high-performance, plugin-based ETL (Extract-Transform-Load) CLI tool built in 
 
 ## Status
 
-🎉 **MVP Complete** - Phases 1-5 Implemented
+🎉 **Phase 6 Complete** - Production Ready!
 
-Core ETL pipeline fully functional with production-ready features. See [roadmap](#roadmap) for implementation status.
+Full ETL pipeline with multi-platform releases, comprehensive testing, and CI/CD automation. See [roadmap](#roadmap) for details.
 
 ### ✅ What Works Now
 
@@ -41,43 +41,67 @@ Core ETL pipeline fully functional with production-ready features. See [roadmap]
 - ✅ Sync modes: Full (delete + insert) & Incremental (key field matching)
 - ✅ Conflict strategies: Skip, Update, Error
 
-**Quality Metrics**
-- ✅ 81 comprehensive unit tests (100% passing)
+**Quality & Release**
+- ✅ 81 unit tests + 12 integration tests (100% passing)
 - ✅ 0 clippy warnings
-- ✅ Production-ready error handling
-
-### 🔄 In Progress (Phase 6)
-
-- 🔄 Integration tests with fixture files
-- 🔄 Documentation and guides
-- 🔄 Multi-platform release binaries
+- ✅ Multi-platform binaries (Linux, macOS Intel/ARM, Windows)
+- ✅ CI/CD automation with GitHub Actions
+- ✅ Comprehensive documentation suite
 
 ## Quick Start
 
 ### Installation
+
+**Option 1: Download Binary (Recommended)**
+
+Download pre-built binaries from [GitHub Releases](https://github.com/basevn/basevn-migro/releases):
+
+```bash
+# Linux / macOS
+wget https://github.com/basevn/basevn-migro/releases/latest/download/migro-<VERSION>-<TARGET>.tar.gz
+tar -xzf migro-*.tar.gz
+sudo mv migro /usr/local/bin/
+
+# Verify installation
+migro --version
+```
+
+**Option 2: Build from Source**
 
 ```bash
 # Clone repository
 git clone https://github.com/basevn/basevn-migro.git
 cd basevn-migro
 
-# Build from source
+# Build release
 cargo build --release
 
-# Binary will be at: target/release/migro
+# Binary at: target/release/migro
+```
+
+**Option 3: Cargo Install**
+
+```bash
+cargo install basevn-migro
 ```
 
 ### Usage
 
 ```bash
 # Validate configuration
-./target/release/migro validate --config examples/job.yaml
+migro validate --config examples/job.yaml
 
-# Run migration (Phase 6 - pipeline orchestration)
-./target/release/migro migrate --config examples/job.yaml
+# Run migration
+migro migrate --config examples/job.yaml
 
-# Check job status (Phase 6 - status tracking)
-./target/release/migro status --job-id import-employees
+# Check job status
+migro status --job-id import-employees
+
+# List all checkpoints
+migro status
+
+# Resume interrupted migration
+migro migrate --config examples/job.yaml --resume
 ```
 
 ## Configuration Example
@@ -272,8 +296,8 @@ basevn-migro/
   - Base.vn loader, rate limiting, retry, registry
 - [x] **Phase 5 - Operations** (Complete)
   - Progress, audit, checkpoint, sync modes
-- [ ] **Phase 6 - Polish & Release** (In Progress)
-  - Integration tests, documentation, release automation
+- [x] **Phase 6 - Polish & Release** (Complete)
+  - Integration tests, documentation, multi-platform releases, CI/CD automation
 
 ## Contributing
 
@@ -312,4 +336,4 @@ Built with ❤️ using:
 
 ---
 
-**Status**: MVP Complete | **Tests**: 81/81 Passing | **License**: Apache 2.0
+**Status**: Production Ready | **Tests**: 93/93 Passing | **Platforms**: Linux, macOS, Windows | **License**: Apache 2.0
