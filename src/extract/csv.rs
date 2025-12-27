@@ -28,7 +28,7 @@ impl CsvExtractor {
             tokio::fs::read_to_string(path)
                 .await
                 .map_err(|source| ExtractError::FileRead {
-                    path: path.display().to_string(),
+                    path: path.to_string_lossy().to_string(),
                     source,
                 })?;
 
@@ -83,7 +83,7 @@ impl Extractor for CsvExtractor {
             tokio::fs::read_to_string(&path)
                 .await
                 .map_err(|source| ExtractError::FileRead {
-                    path: path.display().to_string(),
+                    path: path.to_string_lossy().to_string(),
                     source,
                 })?;
 
@@ -139,7 +139,7 @@ impl Extractor for CsvExtractor {
 
             let mut record = Record::new();
             record.add_metadata("source_line", line_number.to_string());
-            record.add_metadata("source_file", path.display().to_string());
+            record.add_metadata("source_file", path.to_string_lossy().to_string());
 
             for (i, field) in csv_record.iter().enumerate() {
                 if let Some(header) = headers.get(i) {
