@@ -28,7 +28,7 @@ impl CsvExtractor {
             tokio::fs::read_to_string(path)
                 .await
                 .map_err(|source| ExtractError::FileRead {
-                    path: path.to_path_buf(),
+                    path: path.display().to_string(),
                     source,
                 })?;
 
@@ -83,7 +83,7 @@ impl Extractor for CsvExtractor {
             tokio::fs::read_to_string(&path)
                 .await
                 .map_err(|source| ExtractError::FileRead {
-                    path: path.clone(),
+                    path: path.display().to_string(),
                     source,
                 })?;
 

@@ -25,7 +25,7 @@ use super::JobConfig;
 pub fn load_config<P: AsRef<Path>>(path: P) -> Result<JobConfig, ConfigError> {
     let path = path.as_ref();
     let content = std::fs::read_to_string(path).map_err(|source| ConfigError::FileRead {
-        path: path.to_path_buf(),
+        path: path.display().to_string(),
         source,
     })?;
 

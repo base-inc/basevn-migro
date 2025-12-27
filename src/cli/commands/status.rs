@@ -1,6 +1,6 @@
 //! Status command handler.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 
@@ -47,7 +47,7 @@ pub async fn run_status(job_id: Option<String>, checkpoint_path: Option<PathBuf>
 }
 
 /// Displays checkpoint information in a user-friendly format.
-fn display_checkpoint(checkpoint: &crate::operations::checkpoint::Checkpoint, path: &PathBuf) {
+fn display_checkpoint(checkpoint: &crate::operations::checkpoint::Checkpoint, path: &Path) {
     println!("\n┌─────────────────────────────────────────────────────────┐");
     println!("│               Migration Job Status                     │");
     println!("└─────────────────────────────────────────────────────────┘");

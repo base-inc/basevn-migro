@@ -1,6 +1,5 @@
 //! Core error types using thiserror for structured error handling.
 
-use std::path::PathBuf;
 use thiserror::Error;
 
 /// Main error type for basevn-migro operations.
@@ -30,7 +29,7 @@ pub enum MigroError {
 pub enum ConfigError {
     #[error("Failed to load config from {path}: {source}")]
     FileRead {
-        path: PathBuf,
+        path: String,
         source: std::io::Error,
     },
 
@@ -52,7 +51,7 @@ pub enum ConfigError {
 pub enum ExtractError {
     #[error("Failed to read source file: {path}")]
     FileRead {
-        path: PathBuf,
+        path: String,
         source: std::io::Error,
     },
 
