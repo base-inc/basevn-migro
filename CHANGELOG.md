@@ -7,11 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Multi-platform release binaries (Linux, macOS, Windows)
-- GitHub Actions CI/CD workflows
-- Comprehensive test coverage tracking
-
 ## [0.1.0] - 2024-12-27
 
 ### Added
@@ -21,8 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Operations Layer**: Progress tracking, audit logging, checkpointing, sync modes
 - **CLI Commands**:
   - `validate` - Configuration validation
-  - `migrate` - Full ETL pipeline orchestration
-  - `status` - Checkpoint status viewing
+  - `migrate` - Full ETL pipeline orchestration with resume capability
+  - `status` - Checkpoint status viewing and job listing
 - **Features**:
   - Streaming architecture for memory efficiency
   - Resume capability with atomic checkpointing
@@ -34,11 +29,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Record-level failure tracking
   - Sync modes: Full and Incremental
   - Conflict strategies: Skip, Update, Error
-- **Quality**:
+- **Quality & Release**:
   - 81 unit tests (100% passing)
   - 12 integration tests (100% passing)
   - 0 clippy warnings
-  - Comprehensive documentation
+  - Multi-platform release binaries (Linux, macOS Intel/ARM, Windows)
+  - GitHub Actions CI/CD workflows
+  - Comprehensive test coverage tracking
 
 ### Documentation
 - Project overview and PDR
