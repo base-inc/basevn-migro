@@ -5,13 +5,21 @@ on:
     tags:
       - 'v*'
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
   create-release:
     name: Create Release
     runs-on: ubuntu-latest
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
     steps:
+      - name: Get version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -23,69 +31,71 @@ jobs:
           draft: false
           prerelease: false
 
-  build:
-    name: Build
+  compile:
+    name: Compile ${{ matrix.target }}
     needs: create-release
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
+            archive: tar.gz
           - target: x86_64-apple-darwin
             os: macos-latest
+            archive: tar.gz
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            archive: tar.gz
           - target: x86_64-pc-windows-msvc
             os: windows-latest
-    runs-on: ${{ matrix.os }}
+            archive: zip
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
-          toolchain: stable
-          target: ${{ matrix.target }}
-          override: true
+          targets: ${{ matrix.target }}
 
-      - name: Build
-        uses: actions-rs/cargo@v1
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
         with:
-          command: build
-          args: --release --target ${{ matrix.target }}
+          key: ${{ matrix.target }}
 
-      - name: Package (Unix)
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Run tests
+        if: matrix.target == 'x86_64-unknown-linux-gnu' || matrix.target == 'x86_64-apple-darwin' || matrix.target == 'x86_64-pc-windows-msvc'
+        run: cargo test --release --target ${{ matrix.target }}
+
+      - name: Strip binary
         if: matrix.os != 'windows-latest'
+        run: strip target/${{ matrix.target }}/release/migro
+
+      - name: Create archive (tar.gz)
+        if: matrix.archive == 'tar.gz'
         run: |
           cd target/${{ matrix.target }}/release
-          tar czf migro-${{ matrix.target }}.tar.gz migro
-          mv migro-${{ matrix.target }}.tar.gz ../../..
+          tar -czf ../../../migro-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz migro
 
-      - name: Package (Windows)
-        if: matrix.os == 'windows-latest'
+      - name: Create archive (zip)
+        if: matrix.archive == 'zip'
+        shell: pwsh
         run: |
           cd target/${{ matrix.target }}/release
-          7z a migro-${{ matrix.target }}.zip migro.exe
-          mv migro-${{ matrix.target }}.zip ../../..
+          Compress-Archive -Path migro.exe -DestinationPath ../../../migro-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip
 
-      - name: Upload Release Asset (Unix)
-        if: matrix.os != 'windows-latest'
+      - name: Upload release asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./migro-${{ matrix.target }}.tar.gz
-          asset_name: migro-${{ matrix.target }}.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload Release Asset (Windows)
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./migro-${{ matrix.target }}.zip
-          asset_name: migro-${{ matrix.target }}.zip
-          asset_content_type: application/zip
+          asset_path: ./migro-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.${{ matrix.archive }}
+          asset_name: migro-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.${{ matrix.archive }}
+          asset_content_type: ${{ matrix.archive == 'tar.gz' && 'application/gzip' || 'application/zip' }}
