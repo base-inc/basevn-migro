@@ -110,7 +110,11 @@ impl BaseVnLoader {
     /// 1. Detailed format with results array
     /// 2. Simple format with created/failed counts and errors array
     /// 3. Fallback: assume all succeeded if parsing fails
-    fn parse_response(&self, response_text: &str, total_records: usize) -> Result<LoadResult, LoadError> {
+    fn parse_response(
+        &self,
+        response_text: &str,
+        total_records: usize,
+    ) -> Result<LoadResult, LoadError> {
         let mut result = LoadResult::new(total_records);
 
         // Try to parse as JSON
@@ -126,16 +130,23 @@ impl BaseVnLoader {
         // Try detailed format with results array
         if let Some(results_array) = json.get("results").and_then(|v| v.as_array()) {
             for (idx, item) in results_array.iter().enumerate() {
-                let status = item.get("status").and_then(|v| v.as_str()).unwrap_or("success");
+                let status = item
+                    .get("status")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("success");
 
                 if status == "success" {
                     result.add_success();
                 } else {
-                    let error = item.get("error")
+                    let error = item
+                        .get("error")
                         .and_then(|v| v.as_str())
                         .unwrap_or("Unknown error")
                         .to_string();
-                    let id = item.get("id").and_then(|v| v.as_str()).map(|s| s.to_string());
+                    let id = item
+                        .get("id")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string());
                     result.add_failure(idx, id, error);
                 }
             }
@@ -147,12 +158,19 @@ impl BaseVnLoader {
             let created = json.get("created").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
 
             for error_item in errors_array {
-                let index = error_item.get("index").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
-                let error = error_item.get("error")
+                let index = error_item
+                    .get("index")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(0) as usize;
+                let error = error_item
+                    .get("error")
                     .and_then(|v| v.as_str())
                     .unwrap_or("Unknown error")
                     .to_string();
-                let id = error_item.get("id").and_then(|v| v.as_str()).map(|s| s.to_string());
+                let id = error_item
+                    .get("id")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string());
 
                 result.add_failure(index, id, error);
             }
@@ -525,7 +543,10 @@ mod tests {
         assert_eq!(result.failed, 1);
         assert_eq!(result.failures.len(), 1);
         assert_eq!(result.failures[0].index, 1);
-        assert_eq!(result.failures[0].error, "Validation failed: email required");
+        assert_eq!(
+            result.failures[0].error,
+            "Validation failed: email required"
+        );
         assert!(!result.is_complete_success());
         assert_eq!(result.success_rate(), 66.66666666666666);
     }

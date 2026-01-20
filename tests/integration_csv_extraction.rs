@@ -2,8 +2,8 @@
 mod common;
 
 use basevn_migro::config::JobConfig;
-use basevn_migro::extract::registry::ExtractorRegistry;
 use basevn_migro::core::record::Record;
+use basevn_migro::extract::registry::ExtractorRegistry;
 use futures::StreamExt;
 
 #[tokio::test]

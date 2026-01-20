@@ -84,10 +84,8 @@ impl ProgressTracker {
             0.0
         };
 
-        self.bar.set_message(format!(
-            "{:.1}% | Failed: {}",
-            success_rate, self.failed
-        ));
+        self.bar
+            .set_message(format!("{:.1}% | Failed: {}", success_rate, self.failed));
     }
 
     /// Finalizes the progress tracker and displays completion message.

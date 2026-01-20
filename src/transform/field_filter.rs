@@ -98,10 +98,7 @@ mod tests {
         let result = filter.transform(record).unwrap();
 
         assert_eq!(result.len(), 2);
-        assert_eq!(
-            result.get("name"),
-            Some(&Value::String("John Doe".into()))
-        );
+        assert_eq!(result.get("name"), Some(&Value::String("John Doe".into())));
         assert_eq!(
             result.get("email"),
             Some(&Value::String("john@example.com".into()))
@@ -123,10 +120,7 @@ mod tests {
         let result = filter.transform(record).unwrap();
 
         assert_eq!(result.len(), 2);
-        assert_eq!(
-            result.get("name"),
-            Some(&Value::String("John Doe".into()))
-        );
+        assert_eq!(result.get("name"), Some(&Value::String("John Doe".into())));
         assert_eq!(
             result.get("email"),
             Some(&Value::String("john@example.com".into()))

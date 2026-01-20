@@ -1,5 +1,4 @@
 /// Common utilities for integration tests
-
 use std::path::PathBuf;
 
 /// Get the path to a fixture file

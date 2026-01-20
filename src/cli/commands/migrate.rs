@@ -29,7 +29,8 @@ pub async fn run_migrate(config_path: &Path, resume: bool) -> Result<()> {
     tracing::info!("Loaded configuration for job: {}", config.job.id);
 
     // Initialize checkpoint manager
-    let checkpoint_path = PathBuf::from(format!(".basevn-migro/checkpoints/{}.json", config.job.id));
+    let checkpoint_path =
+        PathBuf::from(format!(".basevn-migro/checkpoints/{}.json", config.job.id));
     let checkpoint_manager = CheckpointManager::new(&checkpoint_path);
 
     // Initialize audit logger
@@ -39,7 +40,10 @@ pub async fn run_migrate(config_path: &Path, resume: bool) -> Result<()> {
     // Load or create checkpoint
     let mut checkpoint = if resume {
         if let Some(existing) = checkpoint_manager.load()? {
-            tracing::info!("Resuming from checkpoint: {} records processed", existing.total_processed);
+            tracing::info!(
+                "Resuming from checkpoint: {} records processed",
+                existing.total_processed
+            );
             audit_logger.log(&AuditEvent::JobStart {
                 job_id: config.job.id.clone(),
                 timestamp: Utc::now(),
@@ -135,7 +139,9 @@ pub async fn run_migrate(config_path: &Path, resume: bool) -> Result<()> {
         // Load batch when full
         if current_batch.len() >= batch_size {
             batch_number += 1;
-            let load_result = loader.load_batch(current_batch.clone(), &config.target).await?;
+            let load_result = loader
+                .load_batch(current_batch.clone(), &config.target)
+                .await?;
 
             // Update progress tracker
             progress_tracker.record_batch(load_result.success, load_result.failed);
@@ -161,10 +167,17 @@ pub async fn run_migrate(config_path: &Path, resume: bool) -> Result<()> {
             }
 
             // Update checkpoint
-            let failed_ids: Vec<String> = load_result.failures.iter()
+            let failed_ids: Vec<String> = load_result
+                .failures
+                .iter()
                 .filter_map(|f| f.id.clone())
                 .collect();
-            checkpoint.update(record_index, load_result.success, load_result.failed, failed_ids);
+            checkpoint.update(
+                record_index,
+                load_result.success,
+                load_result.failed,
+                failed_ids,
+            );
             checkpoint_manager.save(&checkpoint)?;
 
             current_batch.clear();
@@ -174,7 +187,9 @@ pub async fn run_migrate(config_path: &Path, resume: bool) -> Result<()> {
     // Process remaining records in final batch
     if !current_batch.is_empty() {
         batch_number += 1;
-        let load_result = loader.load_batch(current_batch.clone(), &config.target).await?;
+        let load_result = loader
+            .load_batch(current_batch.clone(), &config.target)
+            .await?;
 
         progress_tracker.record_batch(load_result.success, load_result.failed);
 
@@ -196,10 +211,17 @@ pub async fn run_migrate(config_path: &Path, resume: bool) -> Result<()> {
             })?;
         }
 
-        let failed_ids: Vec<String> = load_result.failures.iter()
+        let failed_ids: Vec<String> = load_result
+            .failures
+            .iter()
             .filter_map(|f| f.id.clone())
             .collect();
-        checkpoint.update(record_index, load_result.success, load_result.failed, failed_ids);
+        checkpoint.update(
+            record_index,
+            load_result.success,
+            load_result.failed,
+            failed_ids,
+        );
         checkpoint_manager.save(&checkpoint)?;
     }
 
@@ -228,13 +250,18 @@ pub async fn run_migrate(config_path: &Path, resume: bool) -> Result<()> {
         checkpoint_manager.delete()?;
         tracing::info!("Migration completed successfully, checkpoint deleted");
     } else {
-        tracing::warn!("Migration completed with {} failures, checkpoint retained", stats.failed);
+        tracing::warn!(
+            "Migration completed with {} failures, checkpoint retained",
+            stats.failed
+        );
     }
 
     // Print summary
     println!("\n✓ Migration completed!");
-    println!("  Total: {} | Success: {} | Failed: {}",
-             stats.processed, stats.success, stats.failed);
+    println!(
+        "  Total: {} | Success: {} | Failed: {}",
+        stats.processed, stats.success, stats.failed
+    );
     println!("  Success rate: {:.1}%", stats.success_rate);
     println!("  Duration: {}s", stats.elapsed_secs);
     if stats.failed > 0 {

@@ -2,8 +2,8 @@
 mod common;
 
 use basevn_migro::config::JobConfig;
-use basevn_migro::extract::registry::ExtractorRegistry;
 use basevn_migro::core::record::Record;
+use basevn_migro::extract::registry::ExtractorRegistry;
 use futures::StreamExt;
 use wiremock::{
     matchers::{method, path},
@@ -84,7 +84,10 @@ mapping:
 
     // Validate first record
     let first = &records[0];
-    assert_eq!(first.get("name").and_then(|v| v.as_string()), Some("Alice API".to_string()));
+    assert_eq!(
+        first.get("name").and_then(|v| v.as_string()),
+        Some("Alice API".to_string())
+    );
     assert_eq!(
         first.get("email").and_then(|v| v.as_string()),
         Some("alice@api.com".to_string())

@@ -121,22 +121,16 @@ impl TransformerChainBuilder {
     ///
     /// Returns error if transformer not found in registry.
     pub fn with_transformer(mut self, name: &str) -> Result<Self, TransformError> {
-        let transformer = self
-            .registry
-            .get(name)
-            .ok_or_else(|| {
-                TransformError::TransformFailed(format!("Transformer '{}' not found", name))
-            })?;
+        let transformer = self.registry.get(name).ok_or_else(|| {
+            TransformError::TransformFailed(format!("Transformer '{}' not found", name))
+        })?;
 
         self.transformers.push(transformer);
         Ok(self)
     }
 
     /// Adds a transformer instance directly.
-    pub fn with_transformer_instance<T: Transformer + 'static>(
-        mut self,
-        transformer: T,
-    ) -> Self {
+    pub fn with_transformer_instance<T: Transformer + 'static>(mut self, transformer: T) -> Self {
         self.transformers.push(Arc::new(transformer));
         self
     }
@@ -230,14 +224,12 @@ mod tests {
     fn test_chain_builder() {
         let mut registry = TransformerRegistry::new();
 
-        let mapper: Arc<dyn Transformer> = Arc::new(FieldMapper::from_fields(vec![
-            FieldMap {
-                source: "name".to_string(),
-                target: "full_name".to_string(),
-                required: false,
-                default: None,
-            },
-        ]));
+        let mapper: Arc<dyn Transformer> = Arc::new(FieldMapper::from_fields(vec![FieldMap {
+            source: "name".to_string(),
+            target: "full_name".to_string(),
+            required: false,
+            default: None,
+        }]));
 
         registry.register(mapper);
 
@@ -259,8 +251,8 @@ mod tests {
     fn test_chain_builder_not_found() {
         let registry = TransformerRegistry::new();
 
-        let result = TransformerChainBuilder::new(Arc::new(registry))
-            .with_transformer("nonexistent");
+        let result =
+            TransformerChainBuilder::new(Arc::new(registry)).with_transformer("nonexistent");
 
         assert!(result.is_err());
     }

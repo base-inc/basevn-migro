@@ -2,7 +2,9 @@
 mod common;
 
 use basevn_migro::config::JobConfig;
-use basevn_migro::config::{FieldMap, MappingConfig, MissingRequiredBehavior, UnmappedFieldBehavior};
+use basevn_migro::config::{
+    FieldMap, MappingConfig, MissingRequiredBehavior, UnmappedFieldBehavior,
+};
 use basevn_migro::core::record::Record;
 use basevn_migro::extract::registry::ExtractorRegistry;
 use basevn_migro::transform::field_filter::{FieldFilter, FilterMode};
@@ -93,12 +95,15 @@ mapping:
         }
     }
 
-    assert_eq!(mapped_records.len(), 3, "All records should map successfully");
+    assert_eq!(
+        mapped_records.len(),
+        3,
+        "All records should map successfully"
+    );
 
     // Transform: Field Filter (remove sensitive fields)
-    let field_filter = FieldFilter::remove(
-        vec!["Internal ID".to_string(), "Password Hash".to_string()],
-    );
+    let field_filter =
+        FieldFilter::remove(vec!["Internal ID".to_string(), "Password Hash".to_string()]);
 
     let mut final_records: Vec<Record> = Vec::new();
     for record in mapped_records {
@@ -265,13 +270,11 @@ mapping:
     }
 
     // Transform: Keep only specific fields
-    let field_filter = FieldFilter::keep(
-        vec![
-            "Full Name".to_string(),
-            "Email".to_string(),
-            "Department".to_string(),
-        ],
-    );
+    let field_filter = FieldFilter::keep(vec![
+        "Full Name".to_string(),
+        "Email".to_string(),
+        "Department".to_string(),
+    ]);
 
     let mut transformed_records: Vec<Record> = Vec::new();
     for record in records {
@@ -376,9 +379,7 @@ mapping:
         },
     ]);
 
-    let field_filter = FieldFilter::remove(
-        vec!["id".to_string(), "role".to_string()],
-    );
+    let field_filter = FieldFilter::remove(vec!["id".to_string(), "role".to_string()]);
 
     let mut transformed_records: Vec<Record> = Vec::new();
     for record in records {

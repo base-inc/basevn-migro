@@ -53,12 +53,9 @@ impl ExtractorRegistry {
     ///
     /// The appropriate extractor, or an error if not found.
     pub fn get(&self, source_type: &str) -> Result<Arc<dyn Extractor>, ConfigError> {
-        self.extractors
-            .get(source_type)
-            .cloned()
-            .ok_or_else(|| {
-                ConfigError::Validation(format!("Unsupported source type: {}", source_type))
-            })
+        self.extractors.get(source_type).cloned().ok_or_else(|| {
+            ConfigError::Validation(format!("Unsupported source type: {}", source_type))
+        })
     }
 
     /// Gets an extractor for the given source configuration.
@@ -120,10 +117,7 @@ impl ExtractorRegistry {
     /// # Returns
     ///
     /// Optional estimated count.
-    pub async fn estimate_count(
-        &self,
-        config: &SourceConfig,
-    ) -> Result<Option<u64>, ExtractError> {
+    pub async fn estimate_count(&self, config: &SourceConfig) -> Result<Option<u64>, ExtractError> {
         let extractor = self.get_for_config(config).map_err(|e| {
             ExtractError::UnsupportedType(format!("Failed to get extractor: {}", e))
         })?;

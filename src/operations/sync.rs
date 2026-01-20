@@ -130,10 +130,7 @@ mod tests {
 
         let result = strategy.validate();
         assert!(result.is_err());
-        assert_eq!(
-            result.unwrap_err(),
-            "Incremental sync requires key_field"
-        );
+        assert_eq!(result.unwrap_err(), "Incremental sync requires key_field");
     }
 
     #[test]
