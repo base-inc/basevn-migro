@@ -43,6 +43,7 @@ anyhow = "1.0"
 # Utilities
 async-trait = "0.1"
 futures = "0.3"
+rand = "0.8"  # For jitter in rate limiting backoff
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.6", features = ["v4", "serde"] }
 validator = { version = "0.16", features = ["derive"] }

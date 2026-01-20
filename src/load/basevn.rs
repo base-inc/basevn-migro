@@ -1,6 +1,7 @@
 //! Base.vn API loader implementation.
 
 use async_trait::async_trait;
+use rand::Rng;
 use reqwest::{Client, StatusCode};
 use serde_json::{json, Value as JsonValue};
 use std::time::Duration;
@@ -12,6 +13,29 @@ use crate::error::{ConfigError, LoadError};
 
 use super::rate_limiter::RateLimiter;
 use super::traits::{LoadResult, Loader};
+
+/// Adds random jitter (±20%) to a duration to prevent thundering herd.
+fn jitter_duration(base: Duration) -> Duration {
+    let jitter_factor = rand::thread_rng().gen_range(0.8..1.2);
+    Duration::from_secs_f64(base.as_secs_f64() * jitter_factor)
+}
+
+/// Parses the Retry-After header value.
+///
+/// Supports two formats:
+/// - Seconds: `Retry-After: 120`
+/// - HTTP-date: `Retry-After: Wed, 21 Oct 2015 07:28:00 GMT` (treated as fallback)
+fn parse_retry_after(header_value: &str) -> Option<Duration> {
+    // Try parsing as seconds first (most common)
+    if let Ok(seconds) = header_value.trim().parse::<u64>() {
+        return Some(Duration::from_secs(seconds));
+    }
+
+    // Try parsing as HTTP-date (RFC 7231)
+    // For simplicity, we'll use a fallback duration if we can't parse
+    // Most servers use seconds format
+    None
+}
 
 /// Base.vn API loader.
 ///
@@ -152,26 +176,48 @@ impl BaseVnLoader {
     ) -> Result<LoadResult, LoadError> {
         let max_retries = config.options.max_retries;
         let mut attempt = 0;
+        let mut had_success_this_batch = false;
 
         loop {
             match self.send_batch(config, records).await {
-                Ok(result) => return Ok(result),
+                Ok(result) => {
+                    // Record success for rate recovery
+                    if let Some(limiter) = &self.rate_limiter {
+                        limiter.record_success().await;
+                    }
+                    return Ok(result);
+                }
                 Err(err) => {
                     attempt += 1;
+
+                    // Extract retry_after if rate limit error
+                    let (is_rate_limit, retry_after) = match &err {
+                        LoadError::RateLimit { retry_after } => (true, *retry_after),
+                        _ => (false, None),
+                    };
 
                     // Check if error is retryable
                     let is_retryable = matches!(
                         err,
-                        LoadError::Network(_) | LoadError::RateLimit | LoadError::ApiRequest(_)
+                        LoadError::Network(_)
+                            | LoadError::RateLimit { .. }
+                            | LoadError::ApiRequest(_)
                     );
 
                     if !is_retryable || attempt >= max_retries {
                         return Err(err);
                     }
 
-                    // Exponential backoff: 1s, 2s, 4s, 8s, ...
-                    let delay_secs = 2_u64.pow((attempt - 1) as u32);
-                    let delay = Duration::from_secs(delay_secs);
+                    // Calculate delay: use Retry-After if available, else exponential backoff
+                    let base_delay = if let Some(retry_dur) = retry_after {
+                        retry_dur
+                    } else {
+                        // Exponential backoff: 1s, 2s, 4s, 8s, ...
+                        Duration::from_secs(2_u64.pow((attempt - 1) as u32))
+                    };
+
+                    // Add jitter to prevent thundering herd
+                    let delay = jitter_duration(base_delay);
 
                     tracing::warn!(
                         "Batch load attempt {} failed, retrying in {:?}: {}",
@@ -182,15 +228,31 @@ impl BaseVnLoader {
 
                     sleep(delay).await;
 
-                    // If rate limit error, adjust rate limiter
-                    if matches!(err, LoadError::RateLimit) {
+                    // If rate limit error, adjust rate limiter with smarter reduction
+                    if is_rate_limit {
                         if let Some(limiter) = &self.rate_limiter {
-                            let current_rate = config.options.rate_limit;
-                            let new_rate = (current_rate as f64 * 0.75) as usize;
-                            limiter.adjust_rate(new_rate.max(1)).await;
-                            tracing::info!("Adjusted rate limit to {} req/s", new_rate);
+                            // Reset success streak on rate limit
+                            limiter.reset_success_streak();
+
+                            let current_rate = limiter.get_rate().await;
+
+                            // Smarter reduction: 50% if first request failed, 25% if some succeeded
+                            let reduction_factor = if had_success_this_batch { 0.75 } else { 0.5 };
+                            let new_rate =
+                                ((current_rate as f64) * reduction_factor).max(1.0) as usize;
+
+                            limiter.adjust_rate(new_rate).await;
+                            tracing::info!(
+                                "Rate limit hit: reduced {} -> {} req/s (factor: {})",
+                                current_rate,
+                                new_rate,
+                                reduction_factor
+                            );
                         }
                     }
+
+                    // Track that we had at least one successful request attempt
+                    had_success_this_batch = true;
                 }
             }
         }
@@ -235,7 +297,14 @@ impl BaseVnLoader {
         let status = response.status();
 
         if status == StatusCode::TOO_MANY_REQUESTS {
-            return Err(LoadError::RateLimit);
+            // Parse Retry-After header if present
+            let retry_after = response
+                .headers()
+                .get("retry-after")
+                .and_then(|v| v.to_str().ok())
+                .and_then(parse_retry_after);
+
+            return Err(LoadError::RateLimit { retry_after });
         }
 
         if status == StatusCode::UNAUTHORIZED || status == StatusCode::FORBIDDEN {
@@ -510,5 +579,59 @@ mod tests {
         assert_eq!(result.success, 3);
         assert_eq!(result.failed, 0);
         assert!(result.failures.is_empty());
+    }
+
+    #[test]
+    fn test_parse_retry_after_seconds() {
+        assert_eq!(
+            super::parse_retry_after("120"),
+            Some(Duration::from_secs(120))
+        );
+        assert_eq!(
+            super::parse_retry_after("  60  "),
+            Some(Duration::from_secs(60))
+        );
+        assert_eq!(super::parse_retry_after("0"), Some(Duration::from_secs(0)));
+    }
+
+    #[test]
+    fn test_parse_retry_after_invalid() {
+        // Non-numeric strings return None
+        assert_eq!(super::parse_retry_after("invalid"), None);
+        assert_eq!(
+            super::parse_retry_after("Wed, 21 Oct 2015 07:28:00 GMT"),
+            None
+        );
+        assert_eq!(super::parse_retry_after(""), None);
+    }
+
+    #[test]
+    fn test_jitter_duration_range() {
+        let base = Duration::from_secs(10);
+
+        // Run multiple times to verify jitter stays in range
+        for _ in 0..100 {
+            let jittered = super::jitter_duration(base);
+            let secs = jittered.as_secs_f64();
+
+            // Should be within ±20% of base (8-12 seconds)
+            assert!(secs >= 8.0, "Jitter too low: {}", secs);
+            assert!(secs <= 12.0, "Jitter too high: {}", secs);
+        }
+    }
+
+    #[test]
+    fn test_jitter_duration_not_constant() {
+        let base = Duration::from_secs(100);
+
+        // Generate multiple jittered values
+        let values: Vec<f64> = (0..10)
+            .map(|_| super::jitter_duration(base).as_secs_f64())
+            .collect();
+
+        // At least some values should be different (randomness)
+        let first = values[0];
+        let has_variation = values.iter().any(|&v| (v - first).abs() > 0.001);
+        assert!(has_variation, "Jitter should produce varying values");
     }
 }

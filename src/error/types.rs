@@ -1,5 +1,6 @@
 //! Core error types using thiserror for structured error handling.
 
+use std::time::Duration;
 use thiserror::Error;
 
 /// Main error type for basevn-migro operations.
@@ -94,7 +95,10 @@ pub enum LoadError {
     ApiRequest(String),
 
     #[error("Rate limit exceeded")]
-    RateLimit,
+    RateLimit {
+        /// Server-provided retry delay (from Retry-After header)
+        retry_after: Option<Duration>,
+    },
 
     #[error("Validation failed: {0}")]
     Validation(String),
